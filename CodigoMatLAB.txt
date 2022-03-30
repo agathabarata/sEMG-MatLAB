@@ -153,3 +153,50 @@ subplot(212),
     ylabel('Control u(t)');
     legend('u_s(t)');
     xlabel('Time (s)');
+
+
+%%%% PLOTA SEMG%%%
+% Carrega dados de sEMG no formato ABF
+clear all; close all; clc;
+
+[dat,tms]=abf2load('160011703mio.abf');
+
+% Obs: tms me parece ser o período de amostragem utilizado.
+% O resultado foi de 200 e que acredito que seja milisegundos.
+% Deste modo, o período de amotrafgem Ts em segundos é
+    Ts = tms*1e-3; % 0.2 segundos
+    
+% Agora precisamos saber a quantidade de amostras contidas em dat
+    N=length(dat); % comprimento de dat é de 25 mil amostras
+
+% Gerando vetor de tempo para plotar os gráficos
+    t=0:Ts:N*Ts-Ts;
+
+% Plotando os 10 canais armazenados em dat
+  % Obs: se verificarmos a dimensão da matriz dat, veremos que ela é
+  % 25000 x 10 (padrão linha x coluna).
+  size(dat)
+  
+figure(1); % canal 1 ao 5
+subplot(5,1,1),
+    plot(t,dat(:,1)); ylabel('Ch1'); title('Canal 1 ao 5 de sEMG');
+subplot(5,1,2),
+    plot(t,dat(:,2)); ylabel('Ch2');
+subplot(5,1,3),
+    plot(t,dat(:,3)); ylabel('Ch3');
+subplot(5,1,4),
+    plot(t,dat(:,4)); ylabel('Ch4');
+subplot(5,1,5),
+    plot(t,dat(:,5)); ylabel('Ch5'); xlabel('Tempo (s)');
+    
+figure(2); % canal 6 ao 10
+subplot(5,1,1),
+    plot(t,dat(:,6)); ylabel('Ch6'); title('Canal 6 ao 10 de sEMG');
+subplot(5,1,2),
+    plot(t,dat(:,7)); ylabel('Ch7');
+subplot(5,1,3),
+    plot(t,dat(:,8)); ylabel('Ch8');
+subplot(5,1,4),
+    plot(t,dat(:,9)); ylabel('Ch9');
+subplot(5,1,5),
+    plot(t,dat(:,10)); ylabel('Ch10'); xlabel('Tempo (s)');
