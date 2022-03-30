@@ -1,0 +1,155 @@
+
+Anexo
+
+
+%bibiloteca do abf file.
+
+
+[filename directory_name] = uigetfile('*.abf', 'Select a file');
+fullname = fullfile(directory_name, filename);
+
+[data,metadata] = abf2load(filename);
+
+%% 
+%Gerar figuras.
+
+numChannels = size(data,2);
+frequency = metadata.fADCSequenceInterval;
+samplerateHz = 1/(frequency/1000000);
+comments = cell2mat(metadata.sFileComment);
+fprintf('Sample rate %f\nComments -- %s\n',samplerateHz, comments );
+
+figure(1)
+for i=1:numChannels
+    subplot(numChannels,1,i);
+    plot(data(:,i))
+    title(metadata.sADCChannelName(i))
+end
+
+
+figure(2)
+emg=data;
+fs=2000;
+t=1/fs:1/fs:length(emg)/fs;
+remg=(emg.^2).^.5;
+plot(t,remg)
+axis([0 max(t) min(remg) max(remg)])
+xlabel('Tempo em Segundos')
+ylabel('voltagem em volts')
+
+ % exemplo de soma de fatores
+%  a = +23.9;
+%  b = -15.75;
+%  c = 4;
+ 
+ % meu modelo
+%  f = @(x, F) F(1)*x.^4 + F(2)*x.^2 + F(3);
+% 
+% % generate some noisy XY data
+%  x = -1:0.01:100;
+%  y = remg(1:length(x))
+ 
+ % Estimar a, b and c from the data
+%  A = bsxfun(@power, x(:), [4 2 0]);
+%  abc = A\y(:);
+ 
+%  % plotar resultados
+%  plot(x,y, 'b'), hold on
+%  plot(x, f(x, abc), 'r')
+%  xlabel('x (nodes)'), ylabel('y (data)')
+
+ figure(3)
+ 
+ i=0;
+ j=1;
+ indk=1;
+ u=[];
+ i=[];
+ %z = load('train');
+ %z = z.y;
+ for k=1: 100000,
+     %(k)=z(k)u;     
+     i(j)=remg(k);
+     j=j+1;
+     if j==150                 
+         %y(indk) = sqrt(sum(u.*conj(u))/size(u,1));
+         y(indk) = sqrt(sum(i.^2)/size(i,2));         
+         i=[];
+         indk=indk+1;
+         j=1;
+     end     
+ end;
+
+t2 = linspace(0,50, size(y,2))
+plot(t2, smooth(y))
+tmpy = y;
+for i = 1:40,
+    tmpy = smooth(tmpy);
+end
+hold on
+plot(t2, tmpy, 'r')
+
+%Normal FFT
+   
+    
+%
+ 
+ 
+s=tf('s');
+Gs = ((0.02336*s^2 + 1.724*s + 41.4)/( s^2 + 33.71*s + 0.1709))
+ 
+% Modelo discreto via ZOH
+Ts=0.05;
+
+b0=0.004346;
+b1=0.003364;
+
+a1=- 1.656;
+a2=0.6573 ;
+
+
+ 
+% PID metodo de cancelamento de polos
+    tau_mf = 0.5; % given in seconds
+    zd = exp(-Ts/tau_mf); % desired closed-loop real discrete pole.
+
+    s0= (1-zd)/(b0+b1);
+    s1= s0*a1;
+    s2= s0*a2;
+% Generatins a reference sequence yr
+%   nit=length(y);
+%   yr=y;
+%
+nit=length(tmpy);
+yr=tmpy;
+% condição inicial porta arduino
+dacduino_start('COM4')
+for k=1:2,
+    y(k)=0; u(k)=0;
+    e(k)=0; % error between the reference and the output
+    ys(k)=0; us(k)=0; es(k)=0;
+end
+for k=3:nit,
+    % Simulated test
+    y(k)=dacduino_read();
+    e=yr(k)-y(k);
+    u(k)=u(k-1) +s0*e(k) +s1*e(k-1) +s2*e(k-2);
+    
+    
+    ys(k)= -a1*ys(k-1) -a2*ys(k-2) +b0*us(k-1) +b1*us(k-2);
+    es(k)= yr(k)-ys(k);
+    us(k)=us(k-1) +s0*es(k) +s1*es(k-1) +s2*es(k-2);
+end
+dacduino_end();
+% Ploting results
+t=0:Ts:nit*Ts-Ts; % Time vector based on Ts.
+figure(4); % abrir a nova figura na janela do pc
+subplot(211),
+    plot(t,yr,':k',t,ys,'r','linewidth',2);
+    ylabel('Output y(t)');
+    legend('y_r(t)','y_s(t)');
+subplot(212),
+    plot(t,us,'b','linewidth',2);
+    ylabel('Control u(t)');
+    legend('u_s(t)');
+    xlabel('Time (s)');
